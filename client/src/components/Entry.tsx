@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -48,13 +48,15 @@ export default function Entry() {
   const [actualHours, setActualHours] = useState<Record<string, number>>({});
 
   // Initialize actual hours when data loads
-  useMemo(() => {
-    const initialValues: Record<string, number> = {};
-    categories.forEach(category => {
-      const existingEntry = todayEntries.find(e => e.categoryId === category.id);
-      initialValues[category.id] = existingEntry?.actualHours || 0;
-    });
-    setActualHours(initialValues);
+  useEffect(() => {
+    if (categories.length > 0) {
+      const initialValues: Record<string, number> = {};
+      categories.forEach(category => {
+        const existingEntry = todayEntries.find(e => e.categoryId === category.id);
+        initialValues[category.id] = existingEntry?.actualHours || 0;
+      });
+      setActualHours(initialValues);
+    }
   }, [categories, todayEntries]);
 
   const saveEntryMutation = useMutation({

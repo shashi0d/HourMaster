@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -74,13 +74,15 @@ export default function Planning() {
   const [goalValues, setGoalValues] = useState<Record<string, number>>({});
 
   // Initialize goal values when data loads
-  useMemo(() => {
-    const initialValues: Record<string, number> = {};
-    categories.forEach(category => {
-      const existingGoal = weeklyGoals.find(g => g.categoryId === category.id);
-      initialValues[category.id] = existingGoal?.targetHours || 0;
-    });
-    setGoalValues(initialValues);
+  useEffect(() => {
+    if (categories.length > 0) {
+      const initialValues: Record<string, number> = {};
+      categories.forEach(category => {
+        const existingGoal = weeklyGoals.find(g => g.categoryId === category.id);
+        initialValues[category.id] = existingGoal?.targetHours || 0;
+      });
+      setGoalValues(initialValues);
+    }
   }, [categories, weeklyGoals]);
 
   const totalWeeklyHours = useMemo(() => {

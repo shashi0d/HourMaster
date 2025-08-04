@@ -18,18 +18,7 @@ export default function Home() {
     });
   }, []);
 
-  // Register service worker
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => {
-          console.log('SW registered: ', registration);
-        })
-        .catch(registrationError => {
-          console.log('SW registration failed: ', registrationError);
-        });
-    }
-  }, []);
+  // Service worker will be handled by vite-plugin-pwa in production
 
   if (!isDbInitialized) {
     return (
