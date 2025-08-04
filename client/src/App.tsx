@@ -13,6 +13,7 @@ function Router() {
       <Route path="/planning" component={Home} />
       <Route path="/entry" component={Home} />
       <Route path="/analytics" component={Home} />
+      <Route path="/settings" component={Home} />
       <Route component={NotFound} />
     </Switch>
   );

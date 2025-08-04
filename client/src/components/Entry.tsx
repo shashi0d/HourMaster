@@ -20,13 +20,34 @@ export default function Entry() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const today = useMemo(() => formatDate(new Date()), []);
-  const todayFormatted = useMemo(() => {
-    return new Date().toLocaleDateString('en-US', { 
+  const [selectedDate, setSelectedDate] = useState(() => formatDate(new Date()));
+  
+  const selectedDateFormatted = useMemo(() => {
+    return new Date(selectedDate).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
       year: 'numeric' 
     });
+  }, [selectedDate]);
+
+  // Get last 30 days for date selection
+  const availableDates = useMemo(() => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      dates.push({
+        value: formatDate(date),
+        label: date.toLocaleDateString('en-US', { 
+          weekday: 'short',
+          month: 'short', 
+          day: 'numeric' 
+        }),
+        isToday: i === 0
+      });
+    }
+    return dates;
   }, []);
 
   const { data: categories = [] } = useQuery({
@@ -34,14 +55,14 @@ export default function Entry() {
     queryFn: getCategories,
   });
 
-  const { data: todayEntries = [] } = useQuery({
-    queryKey: ["time-entries", today],
-    queryFn: () => getTimeEntries(today),
+  const { data: selectedEntries = [] } = useQuery({
+    queryKey: ["time-entries", selectedDate],
+    queryFn: () => getTimeEntries(selectedDate),
   });
 
-  const { data: todayPlans = [] } = useQuery({
-    queryKey: ["daily-plans", today],
-    queryFn: () => getDailyPlans(today),
+  const { data: selectedPlans = [] } = useQuery({
+    queryKey: ["daily-plans", selectedDate],
+    queryFn: () => getDailyPlans(selectedDate),
   });
 
   // Local state for actual hours
@@ -52,19 +73,19 @@ export default function Entry() {
     if (categories.length > 0) {
       const initialValues: Record<string, number> = {};
       categories.forEach(category => {
-        const existingEntry = todayEntries.find(e => e.categoryId === category.id);
+        const existingEntry = selectedEntries.find(e => e.categoryId === category.id);
         initialValues[category.id] = existingEntry?.actualHours || 0;
       });
       setActualHours(initialValues);
     }
-  }, [categories, todayEntries]);
+  }, [categories, selectedEntries, selectedDate]);
 
   const saveEntryMutation = useMutation({
     mutationFn: async () => {
       const promises = categories.map(async (category) => {
         const actual = actualHours[category.id] || 0;
-        const planned = todayPlans.find(p => p.categoryId === category.id)?.plannedHours || 0;
-        const existingEntry = todayEntries.find(e => e.categoryId === category.id);
+        const planned = selectedPlans.find(p => p.categoryId === category.id)?.plannedHours || 0;
+        const existingEntry = selectedEntries.find(e => e.categoryId === category.id);
         
         if (existingEntry) {
           return updateTimeEntry(existingEntry.id, { 
@@ -73,7 +94,7 @@ export default function Entry() {
           });
         } else {
           return createTimeEntry({
-            date: today,
+            date: selectedDate,
             categoryId: category.id,
             plannedHours: planned,
             actualHours: actual,
@@ -84,7 +105,8 @@ export default function Entry() {
       await Promise.all(promises);
     },
     onSuccess: () => {
-      toast({ title: "Today's hours saved successfully!" });
+      const isToday = selectedDate === formatDate(new Date());
+      toast({ title: `Hours for ${selectedDateFormatted} saved successfully!` });
       queryClient.invalidateQueries({ queryKey: ["time-entries"] });
       queryClient.invalidateQueries({ queryKey: ["current-week-data"] });
       setLocation("/");
@@ -113,14 +135,26 @@ export default function Entry() {
   };
 
   const getPlannedHours = (categoryId: string) => {
-    return todayPlans.find(p => p.categoryId === categoryId)?.plannedHours || 0;
+    return selectedPlans.find(p => p.categoryId === categoryId)?.plannedHours || 0;
   };
 
   return (
     <div className="p-4 space-y-6 pb-20">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold">Log Hours</h2>
-        <span className="text-sm text-text-muted">{todayFormatted}</span>
+        <div className="flex items-center space-x-3">
+          <select 
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="bg-dark-secondary border border-dark-tertiary rounded-lg px-3 py-2 text-sm"
+          >
+            {availableDates.map((date) => (
+              <option key={date.value} value={date.value}>
+                {date.isToday ? `Today (${date.label})` : date.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Hour Entry Cards */}
@@ -201,7 +235,7 @@ export default function Entry() {
         onClick={() => saveEntryMutation.mutate()}
         disabled={saveEntryMutation.isPending}
       >
-        {saveEntryMutation.isPending ? "Saving..." : "Save Today's Hours"}
+        {saveEntryMutation.isPending ? "Saving..." : `Save Hours for ${selectedDateFormatted}`}
       </button>
     </div>
   );

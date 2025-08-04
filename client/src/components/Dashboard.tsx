@@ -102,12 +102,12 @@ export default function Dashboard() {
           <p className="text-sm text-text-muted">{currentDate}</p>
         </div>
         <div className="flex items-center space-x-3">
-          <button className="w-10 h-10 bg-dark-tertiary rounded-full flex items-center justify-center">
-            <i className="fas fa-bell text-text-muted"></i>
+          <button 
+            className="w-10 h-10 bg-dark-tertiary rounded-full flex items-center justify-center hover:bg-opacity-80 transition-colors"
+            onClick={() => setLocation("/settings")}
+          >
+            <i className="fas fa-cog text-text-muted"></i>
           </button>
-          <div className="w-10 h-10 bg-gradient-to-br from-study-blue to-sleep-purple rounded-full flex items-center justify-center">
-            <span className="text-sm font-medium">JD</span>
-          </div>
         </div>
       </header>
 

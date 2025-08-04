@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import BottomNavigation from "@/components/BottomNavigation";
 import Dashboard from "@/components/Dashboard";
 import Planning from "@/components/Planning";
 import Entry from "@/components/Entry";
 import Analytics from "@/components/Analytics";
+import Settings from "@/components/Settings";
 import { initDB } from "@/lib/db";
 
 export default function Home() {
+  const [location] = useLocation();
   const [isDbInitialized, setIsDbInitialized] = useState(false);
 
   useEffect(() => {
@@ -42,10 +44,11 @@ export default function Home() {
           <Route path="/planning" component={Planning} />
           <Route path="/entry" component={Entry} />
           <Route path="/analytics" component={Analytics} />
+          <Route path="/settings" component={Settings} />
         </Switch>
       </main>
       
-      <BottomNavigation />
+      {location !== "/settings" && <BottomNavigation />}
     </div>
   );
 }
