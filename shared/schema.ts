@@ -7,6 +7,7 @@ export const categorySchema = z.object({
   icon: z.string(),
   color: z.string(),
   order: z.number(),
+  defaultHours: z.number().min(0).max(24).default(0),
 });
 
 // Time entry schema
@@ -64,17 +65,20 @@ export const DEFAULT_CATEGORIES: InsertCategory[] = [
     icon: "fas fa-book",
     color: "hsl(217, 91%, 60%)", // study-blue
     order: 1,
+    defaultHours: 4,
   },
   {
     name: "Sleep",
     icon: "fas fa-bed",
     color: "hsl(262, 83%, 69%)", // sleep-purple
     order: 2,
+    defaultHours: 8,
   },
   {
     name: "Workout",
     icon: "fas fa-dumbbell",
     color: "hsl(158, 64%, 52%)", // workout-green
     order: 3,
+    defaultHours: 1,
   },
 ];

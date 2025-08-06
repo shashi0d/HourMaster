@@ -21,15 +21,25 @@ function getISODate(): string {
 }
 
 function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0];
+  // Use timezone-safe date formatting
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function getWeekStart(date: Date): string {
   const d = new Date(date);
   const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  // If it's Sunday (day = 0), we go back 6 days to get to Monday
+  // If it's any other day, we go back (day - 1) days to get to Monday
+  const diff = d.getDate() - (day === 0 ? 6 : day - 1);
   d.setDate(diff);
-  return formatDate(d);
+  // Use timezone-safe date formatting
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const dayOfMonth = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${dayOfMonth}`;
 }
 
 // Categories
@@ -193,9 +203,11 @@ export async function getDailyPlansByDateRange(startDate: string, endDate: strin
   const db = await getDB();
   const allPlans = await db.getAll('dailyPlans');
   
-  return allPlans.filter(plan => 
+  const filtered = allPlans.filter(plan => 
     plan.date >= startDate && plan.date <= endDate
   );
+  
+  return filtered;
 }
 
 export async function createDailyPlan(plan: InsertDailyPlan): Promise<DailyPlan> {
@@ -237,14 +249,23 @@ export async function deleteDailyPlan(id: string): Promise<void> {
 export async function getCurrentWeekData() {
   const today = new Date();
   const weekStart = getWeekStart(today);
-  const weekEnd = new Date(today);
-  weekEnd.setDate(weekEnd.getDate() + (6 - today.getDay() + 1));
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6); // Monday to Sunday (7 days)
+  const weekEndStr = formatDate(weekEnd);
   
-  const entries = await getTimeEntriesByDateRange(weekStart, formatDate(weekEnd));
-  const goals = await getWeeklyGoals(weekStart);
-  const plans = await getDailyPlansByDateRange(weekStart, formatDate(weekEnd));
+  const entries = await getTimeEntriesByDateRange(weekStart, weekEndStr);
+  const plans = await getDailyPlansByDateRange(weekStart, weekEndStr);
   
-  return { entries, goals, plans, weekStart, weekEnd: formatDate(weekEnd) };
+  // Debug logging
+  console.log('getCurrentWeekData - weekStart:', weekStart);
+  console.log('getCurrentWeekData - weekEnd:', weekEndStr);
+  console.log('getCurrentWeekData - entries found:', entries.length);
+  console.log('getCurrentWeekData - entries:', entries);
+  
+  // Return empty goals array since we no longer use weekly goals
+  const goals: any[] = [];
+  
+  return { entries, goals, plans, weekStart, weekEnd: weekEndStr };
 }
 
 export async function getCurrentMonthData() {

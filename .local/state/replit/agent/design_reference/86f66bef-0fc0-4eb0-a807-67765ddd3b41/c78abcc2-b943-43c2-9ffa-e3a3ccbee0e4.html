@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeTracker PWA - Hours Only Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    'inter': ['Inter', 'sans-serif'],
+                },
+                colors: {
+                    'dark-primary': '#121212',
+                    'dark-secondary': '#1E1E1E',
+                    'dark-tertiary': '#2D2D2D',
+                    'study-blue': '#3B82F6',
+                    'sleep-purple': '#8B5CF6',
+                    'workout-green': '#10B981',
+                    'text-primary': '#FFFFFF',
+                    'text-secondary': '#E5E7EB',
+                    'text-muted': '#9CA3AF',
+                }
+            }
+        }
+    };
+    </script>
+    <style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        .category-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .category-card:active {
+            transform: scale(0.98);
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .floating-button {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-dark-primary text-text-primary font-inter">
+    <!-- @COMPONENT: App [root component with navigation state] -->
+    <div class="min-h-screen flex flex-col">
+        
+        <!-- @COMPONENT: Header [app title and user info] -->
+        <header class="bg-dark-secondary px-4 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-semibold">TimeTracker</h1>
+                <p class="text-sm text-text-muted" data-bind="currentDate">Today, Dec 15</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button class="w-10 h-10 bg-dark-tertiary rounded-full flex items-center justify-center">
+                    <i class="fas fa-bell text-text-muted"></i>
+                </button>
+                <div class="w-10 h-10 bg-gradient-to-br from-study-blue to-sleep-purple rounded-full flex items-center justify-center">
+                    <span class="text-sm font-medium">JD</span>
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: Header -->
+
+        <!-- @COMPONENT: MainContent [dynamic content based on navigation] -->
+        <main class="flex-1 overflow-hidden">
+            
+            <!-- Dashboard View (Default) -->
+            <div id="dashboard-view" class="p-4 space-y-6 pb-20">
+                
+                <!-- @COMPONENT: WeeklyProgress [progress ring and stats] -->
+                <div class="bg-dark-secondary rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold">This Week</h2>
+                        <span class="text-sm text-text-muted" data-bind="weekProgress">42/56 hours</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-center mb-6">
+                        <div class="relative w-32 h-32">
+                            <svg class="w-32 h-32 progress-ring">
+                                <circle cx="64" cy="64" r="52" stroke="#2D2D2D" stroke-width="8" fill="none"/>
+                                <circle cx="64" cy="64" r="52" stroke="url(#gradient)" stroke-width="8" fill="none" 
+                                        stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="83" 
+                                        class="transition-all duration-500"/>
+                                <defs>
+                                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#3B82F6"/>
+                                        <stop offset="50%" style="stop-color:#8B5CF6"/>
+                                        <stop offset="100%" style="stop-color:#10B981"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold" data-bind="weekPercentage">75%</div>
+                                    <div class="text-xs text-text-muted">Complete</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between text-sm">
+                        <div class="text-center">
+                            <div class="text-text-muted">Remaining</div>
+                            <div class="font-semibold text-workout-green" data-bind="remainingHours">14h</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-text-muted">Today Goal</div>
+                            <div class="font-semibold text-study-blue" data-bind="todayGoal">8h</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-text-muted">Average</div>
+                            <div class="font-semibold text-sleep-purple" data-bind="dailyAverage">6h</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: WeeklyProgress -->
+
+                <!-- @COMPONENT: TodayCategories [category breakdown] -->
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold px-2">Today's Allocation</h3>
+                    
+                    <!-- @MAP: categories.map(category => ( -->
+                    <div class="category-card bg-dark-secondary rounded-xl p-4 flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-study-blue rounded-xl flex items-center justify-center">
+                                <i class="fas fa-book text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium" data-bind="category.name">Study</h4>
+                                <p class="text-sm text-text-muted">
+                                    <span data-bind="category.completed">2h</span> of <span data-bind="category.planned">4h</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-semibold" data-bind="category.remaining">2h</div>
+                            <div class="text-xs text-text-muted">remaining</div>
+                        </div>
+                    </div>
+
+                    <div class="category-card bg-dark-secondary rounded-xl p-4 flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-sleep-purple rounded-xl flex items-center justify-center">
+                                <i class="fas fa-bed text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium" data-bind="category.name">Sleep</h4>
+                                <p class="text-sm text-text-muted">
+                                    <span data-bind="category.completed">8h</span> of <span data-bind="category.planned">8h</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-semibold text-workout-green" data-bind="category.remaining">0h</div>
+                            <div class="text-xs text-text-muted">complete</div>
+                        </div>
+                    </div>
+
+                    <div class="category-card bg-dark-secondary rounded-xl p-4 flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-workout-green rounded-xl flex items-center justify-center">
+                                <i class="fas fa-dumbbell text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium" data-bind="category.name">Workout</h4>
+                                <p class="text-sm text-text-muted">
+                                    <span data-bind="category.completed">0h</span> of <span data-bind="category.planned">2h</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-semibold" data-bind="category.remaining">2h</div>
+                            <div class="text-xs text-text-muted">remaining</div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+                <!-- @END_COMPONENT: TodayCategories -->
+
+                <!-- @COMPONENT: QuickActions [shortcuts] -->
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold px-2">Quick Actions</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="bg-dark-secondary rounded-xl p-4 text-left" data-event="click:navigateToPlanning">
+                            <div class="w-10 h-10 bg-study-blue/20 rounded-lg flex items-center justify-center mb-3">
+                                <i class="fas fa-calendar-plus text-study-blue"></i>
+                            </div>
+                            <h4 class="font-medium mb-1">Plan Week</h4>
+                            <p class="text-sm text-text-muted">Allocate hours</p>
+                        </button>
+                        
+                        <button class="bg-dark-secondary rounded-xl p-4 text-left" data-event="click:navigateToEntry">
+                            <div class="w-10 h-10 bg-workout-green/20 rounded-lg flex items-center justify-center mb-3">
+                                <i class="fas fa-plus text-workout-green"></i>
+                            </div>
+                            <h4 class="font-medium mb-1">Log Hours</h4>
+                            <p class="text-sm text-text-muted">End of day entry</p>
+                        </button>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: QuickActions -->
+            </div>
+
+            <!-- Planning View -->
+            <div id="planning-view" class="hidden p-4 space-y-6 pb-20">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold">Planning</h2>
+                    <button class="text-study-blue font-medium" data-event="click:savePlanning">Save</button>
+                </div>
+
+                <!-- @COMPONENT: WeekPlanner [weekly allocation interface] -->
+                <div class="bg-dark-secondary rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Weekly Goals</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-study-blue rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-book text-white text-sm"></i>
+                                </div>
+                                <span class="font-medium">Study</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <input type="range" min="0" max="40" value="28" 
+                                       class="w-24 h-2 bg-dark-tertiary rounded-lg appearance-none slider"
+                                       data-bind="studyWeeklyGoal">
+                                <span class="w-12 text-right font-medium" data-bind="studyWeeklyHours">28h</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-sleep-purple rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-bed text-white text-sm"></i>
+                                </div>
+                                <span class="font-medium">Sleep</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <input type="range" min="0" max="60" value="56" 
+                                       class="w-24 h-2 bg-dark-tertiary rounded-lg appearance-none slider"
+                                       data-bind="sleepWeeklyGoal">
+                                <span class="w-12 text-right font-medium" data-bind="sleepWeeklyHours">56h</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-workout-green rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-dumbbell text-white text-sm"></i>
+                                </div>
+                                <span class="font-medium">Workout</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <input type="range" min="0" max="20" value="14" 
+                                       class="w-24 h-2 bg-dark-tertiary rounded-lg appearance-none slider"
+                                       data-bind="workoutWeeklyGoal">
+                                <span class="w-12 text-right font-medium" data-bind="workoutWeeklyHours">14h</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 p-4 bg-dark-tertiary rounded-xl">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-muted">Total Weekly Hours</span>
+                            <span class="font-semibold" data-bind="totalWeeklyHours">98h</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: WeekPlanner -->
+
+                <!-- @COMPONENT: DailyDistribution [daily breakdown] -->
+                <div class="bg-dark-secondary rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Daily Distribution</h3>
+                    
+                    <div class="space-y-3">
+                        <!-- @MAP: days.map(day => ( -->
+                        <div class="flex items-center justify-between p-3 bg-dark-tertiary rounded-lg">
+                            <span class="font-medium" data-bind="day.name">Monday</span>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-study-blue rounded-full"></div>
+                                <span class="text-sm w-8" data-bind="day.study">4h</span>
+                                <div class="w-3 h-3 bg-sleep-purple rounded-full"></div>
+                                <span class="text-sm w-8" data-bind="day.sleep">8h</span>
+                                <div class="w-3 h-3 bg-workout-green rounded-full"></div>
+                                <span class="text-sm w-8" data-bind="day.workout">2h</span>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: DailyDistribution -->
+            </div>
+
+            <!-- Entry View -->
+            <div id="entry-view" class="hidden p-4 space-y-6 pb-20">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold">Log Hours</h2>
+                    <span class="text-sm text-text-muted" data-bind="currentDate">Dec 15, 2024</span>
+                </div>
+
+                <!-- @COMPONENT: HourEntry [end of day logging] -->
+                <div class="space-y-4">
+                    <div class="bg-dark-secondary rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-study-blue rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-book text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold">Study</h3>
+                                    <p class="text-sm text-text-muted">Planned: 4h</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-text-muted">Hours spent:</span>
+                            <div class="flex items-center space-x-3">
+                                <button class="w-10 h-10 bg-dark-tertiary rounded-full flex items-center justify-center"
+                                        data-event="click:decrementStudy">
+                                    <i class="fas fa-minus text-text-muted"></i>
+                                </button>
+                                <input type="number" value="2" min="0" max="24" 
+                                       class="w-16 h-12 bg-dark-tertiary rounded-lg text-center font-semibold text-lg"
+                                       data-bind="studyActual">
+                                <button class="w-10 h-10 bg-dark-tertiary rounded-full flex items-center justify-center"
+                                        data-event="click:incrementStudy">
+                                    <i class="fas fa-plus text-text-muted"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-dark-secondary rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-sleep-purple rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-bed text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold">Sleep</h3>
+                                    <p class="text-sm text-text-muted">Planned: 8h</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-text-muted">Hours spent:</span>
+                            <div class="flex items-center space-x-3">
+                                <button class="w-10 h-10 bg-dark-tertiary rounded-full flex items-center justify-center"
+                                        data-event="click:decrementSleep">
+                                    <i class="fas fa-minus text-text-muted"></i>
+                                </button>
+                                <input type="number" value="8" min="0" max="24" 
+                                       class="w-16 h-12 bg-dark-tertiary rounded-lg text-center font-semibold text-lg"
+                                       data-bind="sleepActual">
+                                <button class="w-10 h-10 bg-dark-tertiary rounded-full flex items-center justify-center"
+                                        data-event="click:incrementSleep">
+                                    <i class="fas fa-plus text-text-muted"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-dark-secondary rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-workout-green rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-dumbbell text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold">Workout</h3>
+                                    <p class="text-sm text-text-muted">Planned: 2h</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-text-muted">Hours spent:</span>
+                            <div class="flex items-center space-x-3">
+                                <button class="w-10 h-10 bg-dark-tertiary rounded-full flex items-center justify-center"
+                                        data-event="click:decrementWorkout">
+                                    <i class="fas fa-minus text-text-muted"></i>
+                                </button>
+                                <input type="number" value="0" min="0" max="24" 
+                                       class="w-16 h-12 bg-dark-tertiary rounded-lg text-center font-semibold text-lg"
+                                       data-bind="workoutActual">
+                                <button class="w-10 h-10 bg-dark-tertiary rounded-full flex items-center justify-center"
+                                        data-event="click:incrementWorkout">
+                                    <i class="fas fa-plus text-text-muted"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="w-full bg-gradient-to-r from-study-blue to-workout-green text-white font-semibold py-4 rounded-xl"
+                        data-event="click:saveEntry">
+                    Save Today's Hours
+                </button>
+                <!-- @END_COMPONENT: HourEntry -->
+            </div>
+
+            <!-- Analytics View -->
+            <div id="analytics-view" class="hidden p-4 space-y-6 pb-20">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold">Analytics</h2>
+                    <button class="bg-dark-secondary px-4 py-2 rounded-lg flex items-center space-x-2"
+                            data-event="click:exportCSV">
+                        <i class="fas fa-download text-study-blue"></i>
+                        <span class="font-medium">Export CSV</span>
+                    </button>
+                </div>
+
+                <!-- @COMPONENT: WeeklyChart [weekly visualization] -->
+                <div class="bg-dark-secondary rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">This Week</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- @MAP: weekDays.map(day => ( -->
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium w-12" data-bind="day.short">Mon</span>
+                            <div class="flex-1 mx-4">
+                                <div class="h-6 bg-dark-tertiary rounded-full overflow-hidden flex">
+                                    <div class="bg-study-blue h-full" style="width: 30%" data-bind="day.studyPercent"></div>
+                                    <div class="bg-sleep-purple h-full" style="width: 50%" data-bind="day.sleepPercent"></div>
+                                    <div class="bg-workout-green h-full" style="width: 10%" data-bind="day.workoutPercent"></div>
+                                </div>
+                            </div>
+                            <span class="text-sm text-text-muted w-8" data-bind="day.total">12h</span>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+
+                    <div class="flex justify-between mt-6 pt-4 border-t border-dark-tertiary">
+                        <div class="text-center">
+                            <div class="flex items-center justify-center space-x-1 mb-1">
+                                <div class="w-3 h-3 bg-study-blue rounded-full"></div>
+                                <span class="text-sm text-text-muted">Study</span>
+                            </div>
+                            <div class="font-semibold" data-bind="weekStudyTotal">18h</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="flex items-center justify-center space-x-1 mb-1">
+                                <div class="w-3 h-3 bg-sleep-purple rounded-full"></div>
+                                <span class="text-sm text-text-muted">Sleep</span>
+                            </div>
+                            <div class="font-semibold" data-bind="weekSleepTotal">49h</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="flex items-center justify-center space-x-1 mb-1">
+                                <div class="w-3 h-3 bg-workout-green rounded-full"></div>
+                                <span class="text-sm text-text-muted">Workout</span>
+                            </div>
+                            <div class="font-semibold" data-bind="weekWorkoutTotal">7h</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: WeeklyChart -->
+
+                <!-- @COMPONENT: MonthlyOverview [monthly summary] -->
+                <div class="bg-dark-secondary rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Monthly Overview</h3>
+                    
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-study-blue" data-bind="monthStudy">112h</div>
+                            <div class="text-sm text-text-muted">Study</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-sleep-purple" data-bind="monthSleep">248h</div>
+                            <div class="text-sm text-text-muted">Sleep</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-workout-green" data-bind="monthWorkout">32h</div>
+                            <div class="text-sm text-text-muted">Workout</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-text-muted">Daily Average</span>
+                            <span class="font-medium" data-bind="dailyAvg">13.1h</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-text-muted">Most Productive Day</span>
+                            <span class="font-medium text-workout-green" data-bind="bestDay">Wednesday</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-text-muted">Goal Achievement</span>
+                            <span class="font-medium text-study-blue" data-bind="goalPercent">87%</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: MonthlyOverview -->
+
+                <!-- @COMPONENT: Insights [AI-like insights] -->
+                <div class="bg-dark-secondary rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Insights</h3>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-start space-x-3 p-3 bg-study-blue/10 rounded-lg">
+                            <div class="w-8 h-8 bg-study-blue/20 rounded-full flex items-center justify-center mt-1">
+                                <i class="fas fa-lightbulb text-study-blue text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm">You're most consistent with sleep tracking. Try to maintain this pattern with other categories.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3 p-3 bg-workout-green/10 rounded-lg">
+                            <div class="w-8 h-8 bg-workout-green/20 rounded-full flex items-center justify-center mt-1">
+                                <i class="fas fa-trending-up text-workout-green text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm">Your workout hours have increased by 40% this month. Great progress!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: Insights -->
+            </div>
+
+        </main>
+        <!-- @END_COMPONENT: MainContent -->
+
+        <!-- @COMPONENT: BottomNavigation [tab navigation] -->
+        <nav class="bg-dark-secondary border-t border-dark-tertiary px-4 py-2 glass-effect">
+            <div class="flex justify-around">
+                <button class="nav-item active flex flex-col items-center py-2 px-3" data-nav="dashboard">
+                    <i class="fas fa-home text-lg mb-1"></i>
+                    <span class="text-xs">Dashboard</span>
+                </button>
+                <button class="nav-item flex flex-col items-center py-2 px-3 text-text-muted" data-nav="planning">
+                    <i class="fas fa-calendar-alt text-lg mb-1"></i>
+                    <span class="text-xs">Planning</span>
+                </button>
+                <button class="nav-item flex flex-col items-center py-2 px-3 text-text-muted" data-nav="entry">
+                    <i class="fas fa-plus-circle text-lg mb-1"></i>
+                    <span class="text-xs">Log Hours</span>
+                </button>
+                <button class="nav-item flex flex-col items-center py-2 px-3 text-text-muted" data-nav="analytics">
+                    <i class="fas fa-chart-bar text-lg mb-1"></i>
+                    <span class="text-xs">Analytics</span>
+                </button>
+            </div>
+        </nav>
+        <!-- @END_COMPONENT: BottomNavigation -->
+
+    </div>
+    <!-- @END_COMPONENT: App -->
+
+    <script>
+    // TODO: Implement IndexedDB integration with idb library
+    // TODO: Implement service worker registration with vite-plugin-pwa
+    // TODO: Implement CSV export with PapaParse and FileSaver
+    // TODO: Add PWA manifest and offline functionality
+    
+    (() => {
+        // @STATE: activeView:string = 'dashboard'
+        // @STATE: categories:array = [{name, planned, actual, icon, color}]
+        // @STATE: weeklyGoals:object = {study: 28, sleep: 56, workout: 14}
+        
+        // Navigation functionality
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = {
+            'dashboard': document.getElementById('dashboard-view'),
+            'planning': document.getElementById('planning-view'),
+            'entry': document.getElementById('entry-view'),
+            'analytics': document.getElementById('analytics-view')
+        };
+
+        function showView(viewName) {
+            // Hide all views
+            Object.values(views).forEach(view => view.classList.add('hidden'));
+            
+            // Show selected view
+            if (views[viewName]) {
+                views[viewName].classList.remove('hidden');
+            }
+            
+            // Update navigation active state
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                item.classList.add('text-text-muted');
+            });
+            
+            const activeNav = document.querySelector(`[data-nav="${viewName}"]`);
+            if (activeNav) {
+                activeNav.classList.add('active');
+                activeNav.classList.remove('text-text-muted');
+            }
+        }
+
+        // Add click handlers to navigation
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                const viewName = item.getAttribute('data-nav');
+                showView(viewName);
+            });
+        });
+
+        // Slider functionality for planning
+        const sliders = document.querySelectorAll('input[type="range"]');
+        sliders.forEach(slider => {
+            const updateValue = () => {
+                const value = slider.value;
+                const nextSibling = slider.nextElementSibling;
+                if (nextSibling) {
+                    nextSibling.textContent = value + 'h';
+                }
+                
+                // Update total
+                const studyValue = parseInt(document.querySelector('[data-bind="studyWeeklyGoal"]').value) || 0;
+                const sleepValue = parseInt(document.querySelector('[data-bind="sleepWeeklyGoal"]').value) || 0;
+                const workoutValue = parseInt(document.querySelector('[data-bind="workoutWeeklyGoal"]').value) || 0;
+                const total = studyValue + sleepValue + workoutValue;
+                
+                const totalElement = document.querySelector('[data-bind="totalWeeklyHours"]');
+                if (totalElement) {
+                    totalElement.textContent = total + 'h';
+                }
+            };
+            
+            slider.addEventListener('input', updateValue);
+            updateValue(); // Initialize
+        });
+
+        // Hour entry increment/decrement
+        const setupCounter = (category) => {
+            const input = document.querySelector(`[data-bind="${category}Actual"]`);
+            const incrementBtn = document.querySelector(`[data-event="click:increment${category.charAt(0).toUpperCase() + category.slice(1)}"]`);
+            const decrementBtn = document.querySelector(`[data-event="click:decrement${category.charAt(0).toUpperCase() + category.slice(1)}"]`);
+            
+            if (incrementBtn && input) {
+                incrementBtn.addEventListener('click', () => {
+                    const current = parseInt(input.value) || 0;
+                    if (current < 24) {
+                        input.value = current + 1;
+                    }
+                });
+            }
+            
+            if (decrementBtn && input) {
+                decrementBtn.addEventListener('click', () => {
+                    const current = parseInt(input.value) || 0;
+                    if (current > 0) {
+                        input.value = current - 1;
+                    }
+                });
+            }
+        };
+
+        setupCounter('study');
+        setupCounter('sleep');
+        setupCounter('workout');
+
+        // Export CSV functionality placeholder
+        const exportBtn = document.querySelector('[data-event="click:exportCSV"]');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                // TODO: Implement CSV export with PapaParse and FileSaver
+                alert('CSV export functionality will be implemented with PapaParse and FileSaver libraries');
+            });
+        }
+
+        // Save entry functionality
+        const saveEntryBtn = document.querySelector('[data-event="click:saveEntry"]');
+        if (saveEntryBtn) {
+            saveEntryBtn.addEventListener('click', () => {
+                // TODO: Save to IndexedDB
+                alert('Entry saved! (Will be implemented with IndexedDB)');
+                showView('dashboard');
+            });
+        }
+
+        // Save planning functionality
+        const savePlanningBtn = document.querySelector('[data-event="click:savePlanning"]');
+        if (savePlanningBtn) {
+            savePlanningBtn.addEventListener('click', () => {
+                // TODO: Save planning data to IndexedDB
+                alert('Planning saved! (Will be implemented with IndexedDB)');
+                showView('dashboard');
+            });
+        }
+
+        // Quick action buttons
+        const planWeekBtn = document.querySelector('[data-event="click:navigateToPlanning"]');
+        const logHoursBtn = document.querySelector('[data-event="click:navigateToEntry"]');
+        
+        if (planWeekBtn) {
+            planWeekBtn.addEventListener('click', () => showView('planning'));
+        }
+        
+        if (logHoursBtn) {
+            logHoursBtn.addEventListener('click', () => showView('entry'));
+        }
+        
+        // Initialize with dashboard view
+        showView('dashboard');
+        
+        // @FUNCTIONALITY: PWA installation prompt
+        // @FUNCTIONALITY: Service worker registration for offline support
+        // @FUNCTIONALITY: IndexedDB setup for local data persistence
+        // @FUNCTIONALITY: Data synchronization between planning and actual hours
+        // @FUNCTIONALITY: Push notifications for daily logging reminders
+        // @FUNCTIONALITY: Chart animations and interactions for analytics
+        // @FUNCTIONALITY: Drag and drop planning interface
+        // @FUNCTIONALITY: Backup and restore functionality
+    })();
+    </script>
+
+    <style>
+        .nav-item.active {
+            color: #3B82F6;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3B82F6;
+            cursor: pointer;
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3B82F6;
+            cursor: pointer;
+            border: none;
+        }
+        
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</body>
+</html>

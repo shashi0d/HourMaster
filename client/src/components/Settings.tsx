@@ -14,6 +14,7 @@ interface CategoryFormData {
   name: string;
   icon: string;
   color: string;
+  defaultHours: number;
 }
 
 const CATEGORY_ICONS = [
@@ -54,7 +55,8 @@ export default function Settings() {
   const [formData, setFormData] = useState<CategoryFormData>({
     name: "",
     icon: "fas fa-star",
-    color: CATEGORY_COLORS[0]
+    color: CATEGORY_COLORS[0],
+    defaultHours: 0
   });
 
   const { data: categories = [] } = useQuery({
@@ -118,7 +120,8 @@ export default function Settings() {
     setFormData({
       name: "",
       icon: "fas fa-star",
-      color: CATEGORY_COLORS[0]
+      color: CATEGORY_COLORS[0],
+      defaultHours: 0
     });
     setShowAddCategory(false);
     setEditingCategory(null);
@@ -129,7 +132,8 @@ export default function Settings() {
     setFormData({
       name: category.name,
       icon: category.icon,
-      color: category.color
+      color: category.color,
+      defaultHours: category.defaultHours
     });
     setShowAddCategory(true);
   };
@@ -157,14 +161,18 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-4 space-y-6 pb-20">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold">Settings</h2>
+    <div className="p-4 space-y-6 pb-24">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white mb-1">Settings</h1>
+          <p className="text-xs text-gray-400">Manage your categories and preferences</p>
+        </div>
         <button 
+          className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors"
           onClick={() => setLocation("/")}
-          className="w-8 h-8 bg-dark-tertiary rounded-full flex items-center justify-center"
         >
-          <i className="fas fa-times text-text-muted"></i>
+          <i className="fas fa-arrow-left text-gray-300"></i>
         </button>
       </div>
 
@@ -278,6 +286,18 @@ export default function Settings() {
                     />
                   ))}
                 </div>
+              </div>
+
+              {/* Default Hours Input */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Default Hours</label>
+                <input 
+                  type="number" 
+                  value={formData.defaultHours}
+                  onChange={(e) => setFormData(prev => ({ ...prev, defaultHours: Number(e.target.value) || 0 }))}
+                  placeholder="Enter default hours"
+                  className="w-full bg-dark-tertiary border border-dark-primary rounded-lg px-3 py-2 text-sm"
+                />
               </div>
 
               {/* Preview */}

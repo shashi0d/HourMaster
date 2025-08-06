@@ -10,7 +10,11 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 
 function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0];
+  // Use timezone-safe date formatting
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function getWeekDays(weekStart: string): { date: string; name: string; short: string }[] {
@@ -41,6 +45,10 @@ export default function Analytics() {
     queryKey: ["current-week-data"],
     queryFn: getCurrentWeekData,
   });
+
+  // Debug logging
+  console.log('Analytics - weekData:', weekData);
+  console.log('Analytics - weekData?.entries:', weekData?.entries);
 
   const { data: monthData } = useQuery({
     queryKey: ["current-month-data"],
@@ -119,14 +127,11 @@ export default function Analytics() {
       ? new Date(bestDay.date).toLocaleDateString('en-US', { weekday: 'long' })
       : 'N/A';
     
-    // Calculate goal achievement (assuming 75% as baseline)
-    const goalPercent = Math.min(100, Math.round((totalHours / (daysInMonth * 12)) * 100));
-    
     return {
       categoryTotals,
       dailyAverage,
       bestDayName,
-      goalPercent,
+      totalHours,
     };
   }, [monthData, categories]);
 
@@ -157,28 +162,35 @@ export default function Analytics() {
   };
 
   return (
-    <div className="p-4 space-y-6 pb-20">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold">Analytics</h2>
+    <div className="p-4 space-y-6 pb-24">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white mb-1">Analytics</h1>
+          <p className="text-xs text-gray-400">Track your progress and insights</p>
+        </div>
         <button 
-          className="bg-dark-secondary px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-opacity-80 transition-colors"
+          className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors"
           onClick={handleExportCSV}
         >
-          <i className="fas fa-download text-study-blue"></i>
-          <span className="font-medium">Export CSV</span>
+          <i className="fas fa-download text-blue-400 text-sm"></i>
+          <span className="text-sm font-medium text-white">Export</span>
         </button>
       </div>
 
       {/* Weekly Chart */}
-      <div className="bg-dark-secondary rounded-2xl p-6">
-        <h3 className="text-lg font-semibold mb-4">This Week</h3>
+      <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-white mb-1">This Week</h2>
+          <p className="text-xs text-gray-400">Daily breakdown by category</p>
+        </div>
         
-        <div className="space-y-4">
+        <div className="space-y-3">
           {weeklyChartData.map((day, index) => (
             <div key={day.date} className="flex items-center justify-between">
-              <span className="text-sm font-medium w-12">{day.short}</span>
-              <div className="flex-1 mx-4">
-                <div className="h-6 bg-dark-tertiary rounded-full overflow-hidden flex">
+              <span className="text-xs font-medium text-gray-300 w-10">{day.short}</span>
+              <div className="flex-1 mx-3">
+                <div className="h-4 bg-gray-700 rounded-full overflow-hidden flex">
                   {day.percentages.map((percentage, catIndex) => (
                     <div 
                       key={catIndex}
@@ -191,22 +203,22 @@ export default function Analytics() {
                   ))}
                 </div>
               </div>
-              <span className="text-sm text-text-muted w-8 text-right">{day.total}h</span>
+              <span className="text-xs text-gray-400 w-8 text-right">{day.total}h</span>
             </div>
           ))}
         </div>
 
-        <div className="flex justify-between mt-6 pt-4 border-t border-dark-tertiary">
+        <div className="flex justify-between mt-4 pt-3 border-t border-gray-700">
           {weeklyTotals.map(({ category, total }) => (
             <div key={category.id} className="text-center">
               <div className="flex items-center justify-center space-x-1 mb-1">
                 <div 
-                  className="w-3 h-3 rounded-full"
+                  className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: category.color }}
                 ></div>
-                <span className="text-sm text-text-muted">{category.name}</span>
+                <span className="text-xs text-gray-400">{category.name}</span>
               </div>
-              <div className="font-semibold">{total}h</div>
+              <div className="text-sm font-semibold text-white">{total}h</div>
             </div>
           ))}
         </div>
@@ -214,64 +226,50 @@ export default function Analytics() {
 
       {/* Monthly Overview */}
       {monthlyStats && (
-        <div className="bg-dark-secondary rounded-2xl p-6">
-          <h3 className="text-lg font-semibold mb-4">Monthly Overview</h3>
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-white mb-1">Monthly Overview</h2>
+            <p className="text-xs text-gray-400">August 2024 summary</p>
+          </div>
           
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-3 gap-4 mb-4">
             {monthlyStats.categoryTotals.map(({ category, total }) => (
               <div key={category.id} className="text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center mr-2"
+                    style={{ backgroundColor: category.color }}
+                  >
+                    <i className={`${category.icon} text-white text-sm`}></i>
+                  </div>
+                </div>
                 <div 
-                  className="text-2xl font-bold"
+                  className="text-lg font-bold"
                   style={{ color: category.color }}
                 >
                   {total}h
                 </div>
-                <div className="text-sm text-text-muted">{category.name}</div>
+                <div className="text-xs text-gray-400">{category.name}</div>
               </div>
             ))}
           </div>
 
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-text-muted">Daily Average</span>
-              <span className="font-medium">{monthlyStats.dailyAverage}h</span>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-400">Daily Average</span>
+              <span className="text-sm font-medium text-white">{monthlyStats.dailyAverage}h</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-text-muted">Most Productive Day</span>
-              <span className="font-medium text-workout-green">{monthlyStats.bestDayName}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-400">Most Productive Day</span>
+              <span className="text-sm font-medium text-green-400">{monthlyStats.bestDayName}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-text-muted">Goal Achievement</span>
-              <span className="font-medium text-study-blue">{monthlyStats.goalPercent}%</span>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-400">Total Hours</span>
+              <span className="text-sm font-medium text-blue-400">{monthlyStats.totalHours}h</span>
             </div>
           </div>
         </div>
       )}
-
-      {/* Insights */}
-      <div className="bg-dark-secondary rounded-2xl p-6">
-        <h3 className="text-lg font-semibold mb-4">Insights</h3>
-        
-        <div className="space-y-3">
-          <div className="flex items-start space-x-3 p-3 bg-study-blue/10 rounded-lg">
-            <div className="w-8 h-8 bg-study-blue/20 rounded-full flex items-center justify-center mt-1">
-              <i className="fas fa-lightbulb text-study-blue text-sm"></i>
-            </div>
-            <div>
-              <p className="text-sm">Track consistently across all categories to get better insights and maintain healthy habits.</p>
-            </div>
-          </div>
-          
-          <div className="flex items-start space-x-3 p-3 bg-workout-green/10 rounded-lg">
-            <div className="w-8 h-8 bg-workout-green/20 rounded-full flex items-center justify-center mt-1">
-              <i className="fas fa-trending-up text-workout-green text-sm"></i>
-            </div>
-            <div>
-              <p className="text-sm">Great job maintaining your tracking habit! Consistency is key to achieving your goals.</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

@@ -1,0 +1,596 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HourTracker PWA - Mobile Time Tracking</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#7C3AED">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: {
+                        500: '#7C3AED',
+                        600: '#7C3AED', 
+                        700: '#5B21B6'
+                    },
+                    background: '#0F0F23',
+                    surface: '#1A1A2E',
+                    'surface-elevated': '#252547',
+                    accent: '#10B981',
+                    warning: '#F59E0B',
+                    danger: '#EF4444'
+                },
+                fontFamily: {
+                    sans: ['Inter', 'sans-serif']
+                }
+            }
+        }
+    };
+    </script>
+    
+    <style>
+        body {
+            background-color: #0F0F23;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(26, 26, 46, 0.8);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .touch-target {
+            min-height: 48px;
+            min-width: 48px;
+        }
+        
+        /* Hide scrollbar */
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="text-slate-50 min-h-screen pb-20">
+
+    <!-- @COMPONENT: App Container -->
+    <div id="app" class="max-w-md mx-auto bg-background min-h-screen relative">
+        
+        <!-- @COMPONENT: Header -->
+        <header class="sticky top-0 z-40 glass-effect px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-lg gradient-bg flex items-center justify-center">
+                        <i class="fas fa-clock text-white text-sm"></i>
+                    </div>
+                    <h1 class="text-xl font-bold">HourTracker</h1>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <!-- @FUNCTIONALITY: Settings dropdown -->
+                    <button class="touch-target flex items-center justify-center text-slate-300 hover:text-white transition-colors">
+                        <i class="fas fa-cog text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- @COMPONENT: Main Content Area -->
+        <main class="px-4 py-6 space-y-6 pb-24">
+            
+            <!-- @COMPONENT: Dashboard Overview -->
+            <section id="dashboard" class="space-y-6">
+                
+                <!-- Today's Progress -->
+                <div class="bg-surface rounded-2xl p-6 border border-primary-700/20">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold">Today's Progress</h2>
+                        <span class="text-sm text-slate-400" data-bind="currentDate">Dec 14, 2024</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-4">
+                        <!-- Study Progress -->
+                        <div class="text-center">
+                            <div class="relative w-16 h-16 mx-auto mb-2">
+                                <svg class="w-16 h-16 progress-ring" viewBox="0 0 36 36">
+                                    <path class="text-slate-700" stroke="currentColor" stroke-width="3" fill="none" 
+                                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                    <path class="text-primary-500" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"
+                                          stroke-dasharray="75, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-xs font-medium" data-bind="study.progress">6h</span>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <h3 class="text-sm font-medium">Study</h3>
+                                <p class="text-xs text-slate-400" data-bind="study.remaining">2h left</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Sleep Progress -->
+                        <div class="text-center">
+                            <div class="relative w-16 h-16 mx-auto mb-2">
+                                <svg class="w-16 h-16 progress-ring" viewBox="0 0 36 36">
+                                    <path class="text-slate-700" stroke="currentColor" stroke-width="3" fill="none" 
+                                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                    <path class="text-accent" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"
+                                          stroke-dasharray="87, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-xs font-medium" data-bind="sleep.progress">7h</span>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <h3 class="text-sm font-medium">Sleep</h3>
+                                <p class="text-xs text-slate-400" data-bind="sleep.remaining">1h left</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Workout Progress -->
+                        <div class="text-center">
+                            <div class="relative w-16 h-16 mx-auto mb-2">
+                                <svg class="w-16 h-16 progress-ring" viewBox="0 0 36 36">
+                                    <path class="text-slate-700" stroke="currentColor" stroke-width="3" fill="none" 
+                                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                    <path class="text-warning" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"
+                                          stroke-dasharray="50, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-xs font-medium" data-bind="workout.progress">1h</span>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <h3 class="text-sm font-medium">Workout</h3>
+                                <p class="text-xs text-slate-400" data-bind="workout.remaining">1h left</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weekly Summary -->
+                <div class="bg-surface rounded-2xl p-6 border border-primary-700/20">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold">This Week</h2>
+                        <span class="text-sm text-accent" data-bind="weekProgress">85% complete</span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Study -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Study</span>
+                                <span data-bind="study.weeklyHours">42h / 50h</span>
+                            </div>
+                            <div class="w-full bg-slate-700 rounded-full h-2">
+                                <div class="bg-primary-500 h-2 rounded-full" style="width: 84%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Sleep -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Sleep</span>
+                                <span data-bind="sleep.weeklyHours">49h / 56h</span>
+                            </div>
+                            <div class="w-full bg-slate-700 rounded-full h-2">
+                                <div class="bg-accent h-2 rounded-full" style="width: 87%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Workout -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Workout</span>
+                                <span data-bind="workout.weeklyHours">6h / 14h</span>
+                            </div>
+                            <div class="w-full bg-slate-700 rounded-full h-2">
+                                <div class="bg-warning h-2 rounded-full" style="width: 43%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="grid grid-cols-2 gap-4">
+                    <button class="bg-surface-elevated rounded-xl p-4 text-left border border-primary-700/20 hover:border-primary-500/40 transition-colors touch-target"
+                            data-event="click:openLogEntry">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-plus text-primary-500"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium">Log Hours</h3>
+                                <p class="text-xs text-slate-400">Add today's time</p>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    <button class="bg-surface-elevated rounded-xl p-4 text-left border border-primary-700/20 hover:border-primary-500/40 transition-colors touch-target"
+                            data-event="click:viewAnalytics">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-chart-line text-accent"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium">Analytics</h3>
+                                <p class="text-xs text-slate-400">View insights</p>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </section>
+
+            <!-- @COMPONENT: Log Entry Screen (Initially Hidden) -->
+            <section id="log-entry" class="hidden space-y-6">
+                <div class="flex items-center space-x-4">
+                    <button class="touch-target text-slate-300 hover:text-white transition-colors" 
+                            data-event="click:goBackToDashboard">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </button>
+                    <h2 class="text-xl font-semibold">Log Today's Hours</h2>
+                </div>
+
+                <!-- Date Selector -->
+                <div class="bg-surface rounded-2xl p-6 border border-primary-700/20">
+                    <label class="block text-sm font-medium mb-3">Date</label>
+                    <input type="date" 
+                           class="w-full bg-surface-elevated border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-primary-500 focus:outline-none transition-colors"
+                           data-bind="selectedDate" value="2024-12-14">
+                </div>
+
+                <!-- Category Time Inputs -->
+                <div class="space-y-4">
+                    <!-- @MAP: categories.map(category => ( -->
+                    
+                    <!-- Study -->
+                    <div class="bg-surface rounded-2xl p-6 border border-primary-700/20">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <div class="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-book text-primary-500"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium">Study</h3>
+                                <p class="text-xs text-slate-400">Goal: 8h/day</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Hours</label>
+                                <input type="number" min="0" max="24" 
+                                       class="w-full bg-surface-elevated border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-primary-500 focus:outline-none transition-colors text-center"
+                                       data-bind="study.hours" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Minutes</label>
+                                <input type="number" min="0" max="59" 
+                                       class="w-full bg-surface-elevated border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-primary-500 focus:outline-none transition-colors text-center"
+                                       data-bind="study.minutes" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sleep -->
+                    <div class="bg-surface rounded-2xl p-6 border border-primary-700/20">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <div class="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-bed text-accent"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium">Sleep</h3>
+                                <p class="text-xs text-slate-400">Goal: 8h/day</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Hours</label>
+                                <input type="number" min="0" max="24" 
+                                       class="w-full bg-surface-elevated border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-accent focus:outline-none transition-colors text-center"
+                                       data-bind="sleep.hours" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Minutes</label>
+                                <input type="number" min="0" max="59" 
+                                       class="w-full bg-surface-elevated border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-accent focus:outline-none transition-colors text-center"
+                                       data-bind="sleep.minutes" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Workout -->
+                    <div class="bg-surface rounded-2xl p-6 border border-primary-700/20">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <div class="w-10 h-10 bg-warning/20 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-dumbbell text-warning"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium">Workout</h3>
+                                <p class="text-xs text-slate-400">Goal: 2h/day</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Hours</label>
+                                <input type="number" min="0" max="24" 
+                                       class="w-full bg-surface-elevated border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-warning focus:outline-none transition-colors text-center"
+                                       data-bind="workout.hours" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Minutes</label>
+                                <input type="number" min="0" max="59" 
+                                       class="w-full bg-surface-elevated border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-warning focus:outline-none transition-colors text-center"
+                                       data-bind="workout.minutes" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+
+                <!-- Save Button -->
+                <button class="w-full gradient-bg rounded-xl py-4 font-semibold text-white touch-target hover:opacity-90 transition-opacity"
+                        data-event="click:saveEntry" data-implementation="Should validate and save to IndexedDB">
+                    <i class="fas fa-save mr-2"></i>
+                    Save Entry
+                </button>
+            </section>
+
+            <!-- @COMPONENT: Analytics Screen (Initially Hidden) -->
+            <section id="analytics" class="hidden space-y-6">
+                <div class="flex items-center space-x-4">
+                    <button class="touch-target text-slate-300 hover:text-white transition-colors"
+                            data-event="click:goBackToDashboard">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </button>
+                    <h2 class="text-xl font-semibold">Analytics</h2>
+                </div>
+
+                <!-- Time Period Selector -->
+                <div class="flex bg-surface rounded-xl p-1 border border-primary-700/20">
+                    <button class="flex-1 py-2 px-4 rounded-lg bg-primary-500 text-white font-medium transition-colors"
+                            data-event="click:selectWeekly">Weekly</button>
+                    <button class="flex-1 py-2 px-4 rounded-lg text-slate-300 hover:text-white font-medium transition-colors"
+                            data-event="click:selectMonthly">Monthly</button>
+                </div>
+
+                <!-- Export Button -->
+                <button class="w-full bg-surface-elevated border border-accent/30 rounded-xl py-4 font-semibold text-accent hover:bg-accent/10 transition-colors touch-target"
+                        data-event="click:exportCSV" data-implementation="Should use PapaParse + FileSaver to export data">
+                    <i class="fas fa-download mr-2"></i>
+                    Export CSV Data
+                </button>
+
+                <!-- Charts Container -->
+                <div class="space-y-6">
+                    <!-- Weekly Chart -->
+                    <div class="bg-surface rounded-2xl p-6 border border-primary-700/20">
+                        <h3 class="text-lg font-semibold mb-4">This Week's Overview</h3>
+                        
+                        <!-- @FUNCTIONALITY: Chart should be implemented with Chart.js or similar library -->
+                        <div class="h-64 bg-surface-elevated rounded-lg flex items-center justify-center border border-slate-600">
+                            <div class="text-center text-slate-400">
+                                <i class="fas fa-chart-bar text-3xl mb-2"></i>
+                                <p>Weekly hours chart</p>
+                                <p class="text-xs">Chart.js visualization</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category Breakdown -->
+                    <div class="bg-surface rounded-2xl p-6 border border-primary-700/20">
+                        <h3 class="text-lg font-semibold mb-4">Category Breakdown</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-4 h-4 bg-primary-500 rounded"></div>
+                                    <span>Study</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="font-semibold" data-bind="study.weeklyTotal">42h</span>
+                                    <span class="text-slate-400 text-sm ml-2">60%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-4 h-4 bg-accent rounded"></div>
+                                    <span>Sleep</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="font-semibold" data-bind="sleep.weeklyTotal">49h</span>
+                                    <span class="text-slate-400 text-sm ml-2">35%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-4 h-4 bg-warning rounded"></div>
+                                    <span>Workout</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="font-semibold" data-bind="workout.weeklyTotal">6h</span>
+                                    <span class="text-slate-400 text-sm ml-2">5%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Trends -->
+                    <div class="bg-surface rounded-2xl p-6 border border-primary-700/20">
+                        <h3 class="text-lg font-semibold mb-4">Monthly Trends</h3>
+                        
+                        <!-- @FUNCTIONALITY: Monthly trend chart with Chart.js -->
+                        <div class="h-48 bg-surface-elevated rounded-lg flex items-center justify-center border border-slate-600">
+                            <div class="text-center text-slate-400">
+                                <i class="fas fa-chart-line text-3xl mb-2"></i>
+                                <p>Monthly trends chart</p>
+                                <p class="text-xs">Line chart showing progression</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- @COMPONENT: Bottom Navigation -->
+        <nav class="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-surface border-t border-primary-700/20 px-4 py-2">
+            <div class="flex justify-around">
+                <button class="flex flex-col items-center py-2 px-4 text-primary-500 touch-target"
+                        data-event="click:showDashboard" data-active="true">
+                    <i class="fas fa-home text-lg mb-1"></i>
+                    <span class="text-xs font-medium">Dashboard</span>
+                </button>
+                
+                <button class="flex flex-col items-center py-2 px-4 text-slate-400 hover:text-white transition-colors touch-target"
+                        data-event="click:showLogEntry">
+                    <i class="fas fa-plus-circle text-lg mb-1"></i>
+                    <span class="text-xs font-medium">Log Hours</span>
+                </button>
+                
+                <button class="flex flex-col items-center py-2 px-4 text-slate-400 hover:text-white transition-colors touch-target"
+                        data-event="click:showAnalytics">
+                    <i class="fas fa-chart-bar text-lg mb-1"></i>
+                    <span class="text-xs font-medium">Analytics</span>
+                </button>
+                
+                <button class="flex flex-col items-center py-2 px-4 text-slate-400 hover:text-white transition-colors touch-target"
+                        data-event="click:showSettings">
+                    <i class="fas fa-user-cog text-lg mb-1"></i>
+                    <span class="text-xs font-medium">Settings</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- @COMPONENT: Floating Action Button (for quick log entry) -->
+        <button class="fixed bottom-20 right-4 w-14 h-14 gradient-bg rounded-full shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-all duration-300 z-30"
+                data-event="click:quickLogEntry" data-implementation="Quick entry modal or bottom sheet">
+            <i class="fas fa-stopwatch text-lg"></i>
+        </button>
+
+    </div>
+    <!-- @END_COMPONENT: App Container -->
+
+    <!-- @STATE: currentScreen:string = 'dashboard' -->
+    <!-- @STATE: categories:array = [{name: 'Study', icon: 'book', color: 'primary'}, ...] -->
+    <!-- @STATE: dailyEntries:object = {} -->
+    <!-- @STATE: weeklyGoals:object = {} -->
+
+    <script>
+        (function() {
+            // TODO: Implement React components, IndexedDB integration, and PWA functionality
+            // TODO: Add Chart.js for analytics visualization
+            // TODO: Implement PapaParse + FileSaver for CSV export
+            // TODO: Register service worker with vite-plugin-pwa
+            
+            // Basic navigation simulation for mockup
+            const sections = {
+                dashboard: document.getElementById('dashboard'),
+                logEntry: document.getElementById('log-entry'),
+                analytics: document.getElementById('analytics')
+            };
+            
+            const navButtons = document.querySelectorAll('[data-event^="click:show"]');
+            const backButtons = document.querySelectorAll('[data-event="click:goBackToDashboard"]');
+            
+            function showSection(sectionName) {
+                Object.values(sections).forEach(section => {
+                    if (section) section.classList.add('hidden');
+                });
+                
+                if (sections[sectionName]) {
+                    sections[sectionName].classList.remove('hidden');
+                }
+                
+                // Update nav active state
+                navButtons.forEach(btn => {
+                    const isActive = btn.dataset.event === `click:show${sectionName.charAt(0).toUpperCase() + sectionName.slice(1)}`;
+                    btn.classList.toggle('text-primary-500', isActive);
+                    btn.classList.toggle('text-slate-400', !isActive);
+                });
+            }
+            
+            // Navigation event handlers
+            navButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const action = e.currentTarget.dataset.event;
+                    if (action === 'click:showDashboard') showSection('dashboard');
+                    else if (action === 'click:showLogEntry') showSection('logEntry');
+                    else if (action === 'click:showAnalytics') showSection('analytics');
+                });
+            });
+            
+            backButtons.forEach(button => {
+                button.addEventListener('click', () => showSection('dashboard'));
+            });
+            
+            // Quick action buttons
+            document.querySelector('[data-event="click:openLogEntry"]')?.addEventListener('click', () => {
+                showSection('logEntry');
+            });
+            
+            document.querySelector('[data-event="click:viewAnalytics"]')?.addEventListener('click', () => {
+                showSection('analytics');
+            });
+            
+            // Time period selector in analytics
+            document.querySelector('[data-event="click:selectWeekly"]')?.addEventListener('click', function() {
+                document.querySelector('[data-event="click:selectMonthly"]').classList.remove('bg-primary-500', 'text-white');
+                document.querySelector('[data-event="click:selectMonthly"]').classList.add('text-slate-300');
+                this.classList.add('bg-primary-500', 'text-white');
+                this.classList.remove('text-slate-300');
+            });
+            
+            document.querySelector('[data-event="click:selectMonthly"]')?.addEventListener('click', function() {
+                document.querySelector('[data-event="click:selectWeekly"]').classList.remove('bg-primary-500', 'text-white');
+                document.querySelector('[data-event="click:selectWeekly"]').classList.add('text-slate-300');
+                this.classList.add('bg-primary-500', 'text-white');
+                this.classList.remove('text-slate-300');
+            });
+            
+            // Form validation simulation
+            document.querySelector('[data-event="click:saveEntry"]')?.addEventListener('click', function() {
+                // TODO: Validate form inputs and save to IndexedDB
+                alert('Entry saved! (This would save to IndexedDB in production)');
+                showSection('dashboard');
+            });
+            
+            // Export CSV simulation
+            document.querySelector('[data-event="click:exportCSV"]')?.addEventListener('click', function() {
+                // TODO: Implement actual CSV export with PapaParse + FileSaver
+                alert('CSV export would be triggered here using PapaParse + FileSaver');
+            });
+            
+            // Initialize dashboard view
+            showSection('dashboard');
+        })();
+    </script>
+</body>
+</html>

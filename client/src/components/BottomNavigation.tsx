@@ -20,7 +20,7 @@ export default function BottomNavigation() {
   const activeNavId = getActiveNavId();
 
   return (
-    <nav className="bg-dark-secondary border-t border-dark-tertiary px-4 py-2 glass-effect">
+    <nav className="fixed bottom-0 left-0 right-0 bg-dark-secondary border-t border-dark-tertiary px-4 py-2 glass-effect z-50">
       <div className="flex justify-around">
         {navItems.map((item) => (
           <button

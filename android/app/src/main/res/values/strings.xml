@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">HourMaster</string>
+    <string name="title_activity_main">HourMaster</string>
+    <string name="package_name">com.hourmaster.app</string>
+    <string name="custom_url_scheme">com.hourmaster.app</string>
+</resources>

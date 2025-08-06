@@ -1,19 +1,45 @@
 import { useMemo } from "react";
-import type { Category, TimeEntry, WeeklyGoal } from "@shared/schema";
+import type { Category, TimeEntry, WeeklyGoal, DailyPlan } from "@shared/schema";
 
 interface WeeklyProgressProps {
   categories: Category[];
   weeklyEntries: TimeEntry[];
   weeklyGoals: WeeklyGoal[];
+  dailyPlans: DailyPlan[];
+}
+
+// Timezone-safe date formatting
+function formatDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Get week start (Monday)
+function getWeekStart(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  // If it's Sunday (day = 0), we go back 6 days to get to Monday
+  // If it's any other day, we go back (day - 1) days to get to Monday
+  const diff = d.getDate() - (day === 0 ? 6 : day - 1);
+  d.setDate(diff);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const dayOfMonth = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${dayOfMonth}`;
 }
 
 export default function WeeklyProgress({ 
   categories, 
   weeklyEntries, 
-  weeklyGoals 
+  weeklyGoals,
+  dailyPlans
 }: WeeklyProgressProps) {
+  // Use the already filtered data from weekData instead of re-filtering
   const progressData = useMemo(() => {
-    const totalPlanned = weeklyGoals.reduce((sum, goal) => sum + goal.targetHours, 0);
+    // Calculate total planned hours from the provided daily plans
+    const totalPlanned = dailyPlans.reduce((sum, plan) => sum + plan.plannedHours, 0);
     const totalActual = weeklyEntries.reduce((sum, entry) => sum + entry.actualHours, 0);
     const percentage = totalPlanned > 0 ? Math.round((totalActual / totalPlanned) * 100) : 0;
     const remaining = Math.max(0, totalPlanned - totalActual);
@@ -31,14 +57,20 @@ export default function WeeklyProgress({
       strokeDashoffset,
       circumference,
     };
-  }, [weeklyEntries, weeklyGoals]);
+  }, [weeklyEntries, dailyPlans]);
 
-  // Get today's goal and average
-  const todayGoal = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+  // Get today's goal and progress
+  const todayData = useMemo(() => {
+    const today = formatDate(new Date());
+    const todayPlans = dailyPlans.filter(plan => plan.date === today);
     const todayEntries = weeklyEntries.filter(entry => entry.date === today);
-    return todayEntries.reduce((sum, entry) => sum + entry.plannedHours, 0);
-  }, [weeklyEntries]);
+    
+    const planned = todayPlans.reduce((sum, plan) => sum + plan.plannedHours, 0);
+    const completed = todayEntries.reduce((sum, entry) => sum + entry.actualHours, 0);
+    const remaining = Math.max(0, planned - completed);
+    
+    return { planned, completed, remaining };
+  }, [dailyPlans, weeklyEntries]);
 
   const dailyAverage = useMemo(() => {
     const daysWithEntries = new Set(weeklyEntries.map(entry => entry.date)).size;
@@ -47,19 +79,14 @@ export default function WeeklyProgress({
   }, [weeklyEntries, progressData.totalActual]);
 
   const weekRange = useMemo(() => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
-    
     return `${progressData.totalActual}/${progressData.totalPlanned} hours`;
   }, [progressData]);
 
   return (
-    <div className="bg-dark-secondary rounded-2xl p-6">
+    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">This Week</h2>
-        <span className="text-sm text-text-muted">{weekRange}</span>
+        <h2 className="text-lg font-semibold text-white">This Week (Mon-Sun)</h2>
+        <span className="text-sm text-gray-400">{weekRange}</span>
       </div>
       
       <div className="flex items-center justify-center mb-6">
@@ -104,16 +131,18 @@ export default function WeeklyProgress({
       
       <div className="flex justify-between text-sm">
         <div className="text-center">
-          <div className="text-text-muted">Remaining</div>
-          <div className="font-semibold text-workout-green">{progressData.remaining}h</div>
+          <div className="text-gray-400">Remaining</div>
+          <div className="font-semibold text-green-400">{progressData.remaining}h</div>
         </div>
         <div className="text-center">
-          <div className="text-text-muted">Today Goal</div>
-          <div className="font-semibold text-study-blue">{todayGoal}h</div>
+          <div className="text-gray-400">Today Goal</div>
+          <div className="font-semibold text-blue-400">
+            {todayData.completed}/{todayData.planned}h completed
+          </div>
         </div>
         <div className="text-center">
-          <div className="text-text-muted">Average</div>
-          <div className="font-semibold text-sleep-purple">{dailyAverage}h</div>
+          <div className="text-gray-400">Average</div>
+          <div className="font-semibold text-purple-400">{dailyAverage}h</div>
         </div>
       </div>
     </div>
